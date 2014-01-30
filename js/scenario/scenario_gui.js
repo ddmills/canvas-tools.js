@@ -60,7 +60,6 @@ $(document).on('click', '.editor_clip', function() {
     window.log('selected clip ' + $(this).attr('id'));
 });
 
-
 update = function(delta) {
     var new_html = 
         'speed: ' + window.constants.GAME_SPEED + '<br>' +

@@ -11,7 +11,6 @@ window.resources = {
         this.sprites = {};
         this.sounds = {};
         this.images_to_load = {};
-        
         window.log('resources initialized');
     },
     

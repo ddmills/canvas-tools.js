@@ -2,9 +2,6 @@ window.gui = {
     init: function() {
         this.windows = [];
         this.active_win = false;
-        
-        
-        
         window.log('gui initialized');
     },
     
@@ -74,8 +71,6 @@ window.gui = {
         this.active_win = id;
         $('#' + id).css('z-index', 220);
     }
-
-    
 }
 
 $(document).on('mousedown', '.gui_window', function() {
