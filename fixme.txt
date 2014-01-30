@@ -1,0 +1,37 @@
+
+1.) REMOVED window.draw ques
+window.draw.image_que, window.draw.sub_image_que, and window.draw.animation_que 
+should all act more like ques. Right now it will only loop through and
+remove elements which are loaded. It should preserve the order. (look at
+the window.draw.update() method.
+
+2.) DONE window.draw.update()
+right now 32 is hardcoded for spritesize offset x/y scaling, and the offset h/w. 
+It should be changed to:
+off_w = anim.sprite.image.width/anim.clips[0]
+off_h = anim.sprite.image.height/anim.clips[1]
+off_x = anim.clip[0] * off_w
+off_y = anim.clip[1] * off_h
+
+3.) DONE window.draw.update() and Animation (in draw.js)
+Animation should have it's own .draw() method
+
+4.) ???? Animation should be extracted from draw.js into it's own file.
+
+5.) DONE Add rotation for images and animations
+
+6.) DONE animations shouldn't be updating every single frame, only when they need to. 
+
+7.) DONE Separate window.draw, panning/zooming/camera capabilites into window.viewport!!!!
+
+8.) DONE make active window appear above others
+
+9.) clean up scenario_gui.js. divide windows into their own files?
+
+10.) fix mip-mapping for certain draw layers! ('background??')
+
+11.) get rid of initializer.js maybe??
+
+12.) DONE create a set 'area' for jquery.windower.js
+
+13.) background not drawing on startup? maybe has something to do with requestAnimFrame()??

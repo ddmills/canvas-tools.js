@@ -1,0 +1,24 @@
+
+1. Easy to manage resources
+   - keep track of sprites, images, and sounds, easily
+
+2. HTML based GUI with windows
+   - create windows that are draggable and resizable
+   - fill them with simple HTML
+
+3. Console
+   - also keep track of previous console entries
+
+4. Maps
+   - easily create maps and define a sprite for it
+
+5. Draw layers
+   - layers can be as big as the map, or as big as the screen (overlay)
+   - persistant or non-persistant (refresh when not clear)
+
+6. constants
+   - provide easy control to changing major game components
+
+7. debug mode
+  - enable logging of events via window.log('msg')
+  - watches file name, line number, and time when logged
