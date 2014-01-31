@@ -8,18 +8,6 @@
 	top:0px;
 }
 
-#game_back {
-	z-index: 1;
-}
-
-#game_mid {
-	z-index: 2;
-}
-
-#game_front {
-	z-index: 3;
-}
-
 .gui_window {
     z-index: 200;
     border: 3px ridge  #400000;

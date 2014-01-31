@@ -63,7 +63,7 @@ $(window).ready(function() {
             }
         }
         
-        //g.map.load_sprite_map('background', 'dirt', rand_map);
+        g.map.load_sprite_map('background', 'dirt', rand_map);
         
          /* draw some images */
         //window.draw.image('scare', 'background', 0, 0, 800, 600);
