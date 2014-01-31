@@ -117,5 +117,4 @@ window.viewport = {
         //this.image('highlighter', 'refreshed', x_loc, y_loc, window.constants.TILE_WIDTH, window.constants.TILE_HEIGHT);
         window.draw.rectangle('refreshed', x_loc, y_loc, window.constants.TILE_WIDTH, window.constants.TILE_HEIGHT, '#0A2933', '#0033CC', .25);
 	}
-
 }
