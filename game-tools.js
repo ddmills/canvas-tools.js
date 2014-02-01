@@ -1,22 +1,33 @@
-function Game() {
-    window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
-                              window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
-
+$(window).ready(function() {
+    /*  settings for different browsers */
+    window.requestAnimationFrame = window.requestAnimationFrame || 
+        window.mozRequestAnimationFrame ||
+        window.webkitRequestAnimationFrame || 
+        window.msRequestAnimationFrame;
+});
+function Game(id) {
     this.paused = false; // pauses the game when true
     this.hooks = []; // a list of objects to update each frame
     this.started = false; // true when game has started
     this.time = 0; // current game time
     this.time_started = 0; // time started
+    this.id = id; // the id of the HTML element containing the game
     
     /* MANAGERS */
     this.constants = {
         MIP_MAPPING : false, // disable or enable mip mapping
         
+        GAME_AREA_WIDTH : 1600, // X number of pixels for game area
+        GAME_AREA_HEIGHT : 1200, // Y number of pixels for game area
+        
+        VIEW_WIDTH : 800, // viewport width
+        VIEW_HEIGHT : 600, // viewport height
+
         GAME_SPEED : 1,  // game speed mulitplier
         
-        TILE_HEIGHT : 32,
-        TILE_WIDTH : 32,
-        
+        TILE_WIDTH : 32, // tile width
+        TILE_HEIGHT : 32, // tile height
+
         PAN_MARGIN : 32, // margin for panning
         PAN_SPEED : 25, // speed for panning
     };
@@ -151,27 +162,165 @@ function Game() {
             this.tile_under_mouse = [x_tile, y_tile];   
         }
     };
+    this.viewport = {
+        init: function() {
+            /* hook into main game loop and event loop */
+            this.game.add_hook(this);
+            this.game.events.add_hook(this);
+            
+            /* how much the viewport has panned */
+            this.pan_x = 0;
+            this.pan_y = 0;
+            
+            /* how much the viewport should pan on next update */
+            this.panning_x = 0;
+            this.panning_y = 0;
+            
+            /* the maximum distance the camera can pan */
+            this.max_pan_x = this.game.constants.VIEW_WIDTH - this.game.constants.GAME_AREA_WIDTH;
+            this.max_pan_y = this.game.constants.VIEW_HEIGHT - this.game.constants.GAME_AREA_HEIGHT;
+            
+            /* gather the HTML elements for this game instance */
+            this.game_ele = $('#' + this.game.id); 
+            this.overlay_ele = $('<div id="' + this.game.id + '_overlay"></div>');
+            this.area_ele = $('<div id="' + this.game.id + '_area"></div');
+  
+            /* set css */
+            this.overlay_ele.css('position', 'absolute');
+            this.overlay_ele.css('overflow', 'hidden');
+            this.overlay_ele.css('left', 0);
+            this.overlay_ele.css('right', 0);
+            this.overlay_ele.css('width', this.game.constants.VIEW_WIDTH);
+            this.overlay_ele.css('height', this.game.constants.VIEW_HEIGHT);        
+            this.area_ele.css('left', 0);
+            this.area_ele.css('top', 0);
+            this.area_ele.css('position', 'absolute');
+            this.area_ele.css('width', this.game.constants.GAME_AREA_WIDTH);
+            this.area_ele.css('height', this.game.constants.GAME_AREA_HEIGHT);
+            
+            /* add them to the DOM */
+            this.overlay_ele.append(this.area_ele);
+            this.game_ele.append(this.overlay_ele);
+
+        },
+        
+        /* called when the window gets resized, by game.events*/
+        resize: function() {
+            console.log('resizing');
+            this.max_pan_x = this.game.constants.VIEW_WIDTH - this.game.constants.GAME_AREA_WIDTH;
+            this.max_pan_y = this.game.constants.VIEW_HEIGHT - this.game.constants.GAME_AREA_HEIGHT;
+            
+            this.overlay_ele.css('width', this.game.constants.VIEW_WIDTH);
+            this.overlay_ele.css('height', this.game.constants.VIEW_HEIGHT);
+            this.area_ele.css('width', this.game.constants.GAME_AREA_WIDTH);
+            this.area_ele.css('height', this.game.constants.GAME_AREA_HEIGHT);
+        },
+        
+        /* this is called every time the mouse moves */
+        mouse_move: function(e) {
+            //console.log($('#game_overlay').css('left'));
+            mouse_x = e.clientX;//+ $('#game_overlay').css('left')
+            mouse_y = e.clientY;// + $('#game_overlay').css('right');
+            
+           // console.log('page: ' + e.pageX + ' ' + e.pageY);
+            //console.log('client: ' + mouse_x + ' ' + mouse_y);
+            var margin = this.game.constants.PAN_MARGIN;
+            var s_speed = this.game.constants.PAN_SPEED;
+            if (mouse_x <= margin) {
+                var diff = parseInt(((margin - mouse_x) / margin) * s_speed);
+                if (diff > s_speed) {
+                    diff = s_speed;
+                }
+                this.panning_x = diff;
+
+            } else if (mouse_x >= this.game.constants.VIEW_WIDTH - margin) {
+                //console.log('pan right');
+                var diff = s_speed - parseInt(((this.game.constants.VIEW_WIDTH - mouse_x)/margin) * s_speed);
+                if (diff > s_speed) {
+                    diff = s_speed;
+                }
+                
+                this.panning_x = -1 * diff;
+
+            } else {
+                this.panning_x = 0;
+            }
+            
+            if (mouse_y <= margin) {
+                var diff = parseInt(((margin - mouse_y) / margin) * s_speed);
+                if (diff > s_speed) {
+                    diff = s_speed;
+                }
+                this.panning_y = diff;
+            } else if (mouse_y >= this.game.constants.VIEW_HEIGHT - margin) {
+                var diff = s_speed - parseInt(((this.game.constants.VIEW_HEIGHT - mouse_y)/margin) * s_speed)
+                
+                if (diff > s_speed) {
+                    diff = s_speed;
+                }
+                
+                this.panning_y = -1 * diff;
+
+            } else {
+                this.panning_y = 0;
+            }
+        },
+        
+        /* this is called whenever the screen needs to pan */
+        pan: function() {
+            this.pan_x += this.panning_x;
+            this.pan_y += this.panning_y;
+           
+           if (this.pan_x > 0) {
+                this.pan_x = 0;
+            } else if (this.pan_x < this.max_pan_x) {
+                this.pan_x = this.max_pan_x;
+            }
+
+            if (this.pan_y > 0) {
+                this.pan_y = 0;
+            } else if (this.pan_y < this.max_pan_y) {
+                this.pan_y = this.max_pan_y;
+            }
+            this.move(this.pan_x, this.pan_y);
+        },
+        
+        /* moves the viewport to x, y */
+        move_view: function(x, y) {
+            this.area_ele.css('left', x);
+            this.area_ele.css('top', y);
+        },
+        
+        /* this is called every frame from game.update()*/
+        update: function(delta) {
+            /* check if we need to pan */
+            if (this.panning_x != 0 || this.panning_y != 0) {
+                //this.pan();
+            }
+            
+            /* draw highlighter at cursor */
+            var x_loc = this.game.events.tile_under_mouse[0] * this.game.constants.TILE_WIDTH +  this.pan_x;
+            var y_loc = this.game.events.tile_under_mouse[1] * this.game.constants.TILE_HEIGHT + this.pan_y;
+            //this.game.draw.rectangle('refreshed', x_loc, y_loc, this.game.constants.TILE_WIDTH, this.game.constants.TILE_HEIGHT, '#0A2933', '#0033CC', .25);
+        }
+    };
     this.draw = {
         init: function() {
             this.layers = {};
             this.animations = [];
             this.game.add_hook(this);
-            this.game.events.add_hook(this);
-
-            $('#game_area').css('left', 0);
-            $('#game_area').css('top', 0);
-            $('#game_area').css('position', 'fixed');
-            
-            $('#game_overlay').css('left', 0);
-            $('#game_overlay').css('top', 0);
-            $('#game_overlay').css('position', 'fixed');
+            this.game.events.add_hook(this);        
         },
         
         /* create a new canvas layer */
         add_layer: function(name, overlay, persistant) {
-            var canvas = $('<canvas id="can_' + name + '" class="game_canvas">');
-             var ctx = canvas[0].getContext('2d'); 
-
+            console.log('adding layer: ' + name);
+            
+        
+            var canvas = $('<canvas id="' + this.game.id + '_can_' + name + '" class="game_canvas">');
+            var ctx = canvas[0].getContext('2d'); 
+            
+            // set persistance
             if (persistant) {
                 canvas.data('persistant', true);
             } else {
@@ -181,24 +330,22 @@ function Game() {
             
             // set canvas size and add it to the document
             if (overlay) {
-                canvas.attr('width', this.game.viewport.screen_width);
-                canvas.attr('height', this.game.viewport.screen_height);
-                
-                $('#game_overlay').append(canvas);
+                canvas.css('width', this.game.constants.VIEW_WIDTH);
+                canvas.css('height', this.game.constants.VIEW_HEIGHT);
                 canvas.data('view', 'overlay');
+                this.game.viewport.overlay_ele.append(canvas);
             } else {
-                canvas.attr('width', this.game.map.width);
-                canvas.attr('height', this.game.map.height);
-                
-                $('#game_area').append(canvas);
+                canvas.css('width', this.game.constants.GAME_AREA_WIDTH);
+                canvas.css('height', this.game.constants.GAME_AREA_HEIGHT);
                 canvas.data('view', 'background');
+                this.game.viewport.area_ele.append(canvas);
             }
+
+            // add the layer to the draw manager
+            this.layers[name] = canvas;
             
             // set the mip-maping
-            this.set_mip_mapping(this.game.constants.MIP_MAPPING);
-            
-            
-            return this.layers[name] = canvas;
+            //this.set_mip_mapping(name);
         },
         
         /* draw an image to a layer */
@@ -228,6 +375,7 @@ function Game() {
                 }
                 
                 var ctx = lay[0].getContext('2d');
+                console.log('drawing image: ' + image_name + ' x: ' + x + ' y: ' + y + ' w: ' + w + ' h: ' + h);
                 if (r == 0) {
                     if (this.layers[layer_name].data('persistant') == false) {
                         this.layers[layer_name].data('cleared', false);
@@ -348,7 +496,7 @@ function Game() {
         /* clear a whole layer */
         clear_layer: function(layer) {
             var ctx = this.layers[layer][0].getContext('2d');
-            ctx.clearRect(0, 0, this.screen_width, this.screen_height);
+            ctx.clearRect(0, 0, this.game.constants.VIEW_WIDTH, this.game.constants.VIEW_HEIGHT);
             this.layers[layer].data('cleared', true);
         },
         
@@ -389,46 +537,21 @@ function Game() {
         
         /* called when the window gets resized */
         resize: function() {
-            $('.gui_container').css('height', $(window).height());
-            $('.gui_container').css('width', $(window).width());
             for (layer in this.layers) {
                 if (this.layers[layer].data('view') == 'overlay') {
-                    this.layers[layer].attr('width', this.game.viewport.screen_width);
-                    this.layers[layer].attr('height', this.game.viewport.screen_height);
+                    this.layers[layer].css('width', this.game.viewport.VIEW_WIDTH);
+                    this.layers[layer].css('height', this.game.viewport.VIEW_HEIGHT);
+                    this.set_mip_mapping(layer);
                 }
             }
-            this.set_mip_mapping(this.game.constants.MIP_MAPPING);
-        },
-        
-        /* called when the map changes size */
-        background_resize: function() {
-            $('.gui_container').css('height', $(window).height());
-            $('.gui_container').css('width', $(window).width());
-            for (layer in this.layers) {
-                if (this.layers[layer].data('view') == 'background') {
-                    var canvas = $('#can_' + layer);
-                    canvas.attr('width', this.game.map.width * this.game.constants.TILE_WIDTH);
-                    canvas.attr('height', this.game.map.height * this.game.constants.TILE_HEIGHT);
-                }
-            }
-            this.set_mip_mapping(this.game.constants.MIP_MAPPING);
         },
         
         /* set the mip-mapping */
-        set_mip_mapping: function(mip) {
-            for (layer in this.layers) {
-                var canvas = $('#can_' + layer);
-                var ctx = canvas[0].getContext('2d'); 
-                ctx.imageSmoothingEnabled = mip;
-                ctx.mozImageSmoothingEnabled = mip;
-                ctx.webkitImageSmoothingEnabled = mip;
-            }
-        },
-        
-        /* called by game.viewport when the game_area needs to be moved to x, y */
-        move_view: function(x, y) {
-            $('#game_area').css('left', x);
-            $('#game_area').css('top', y);
+        set_mip_mapping: function(layer) {
+            var ctx = this.layers[layer][0].getContext('2d'); 
+            ctx.imageSmoothingEnabled = this.game.constants.MIP_MAPPING;
+            ctx.mozImageSmoothingEnabled = this.game.constants.MIP_MAPPING;
+            ctx.webkitImageSmoothingEnabled = this.game.constants.MIP_MAPPING;
         },
         
         /* this is called every frame from game.update()*/
@@ -474,184 +597,42 @@ function Game() {
             this.width = map.length;
             this.height = map[0].length;
 
-            this.game.draw.background_resize();
-            this.game.viewport.background_resize();
-            
             for (var i = 0; i < map.length; i++) {
                 for(var j = 0; j < map[i].length; j++) {
                     this.game.draw.sub_sprite(this.sprite, layer, map[i][j], j * this.game.constants.TILE_WIDTH, i * this.game.constants.TILE_HEIGHT);
                 }
             }
         },
-        
-        /* load a collision map */
-        load_collision_map: function(collision_layer, map) {
-            //this.collision_layers[collision_layer] = [][];
-            for (var i = 0; i < map.length; i++) {
-                for(var j = 0; j < map[i].length; j++) {
-                    if (map[i][j] == 0) {
-                        this.collision_layers[collision_layer][i][j] = false;
-                    } else {
-                        this.collision_layers[collision_layer][i][j] = true;
-                    }
-                }
-            }
-        },
-        
-        /* check if  there is a collision at (x, y) in the collision_layer */
-        check_collision: function(collision_layer, x, y) {
-            return collision_layer[x][y];
-        },
-        
-        /* set the (x, y) in the collision layer to be true or false */
-        set_collision: function(collision_layer, x, y, collision) {
-            this.collision_layers[collision_layer][x][y] = collision;
-        },
-        
-        /* show the content editor */
-        show_editor: function() {
-            this.game.gui.show_window('window_editor', true);
-        }
-    };
-    this.viewport = {
-        init: function() {
-            this.game.add_hook(this);
-            this.game.events.add_hook(this);
-            
-            /* how much the viewport has panned */
-            this.pan_x = 0;
-            this.pan_y = 0;
-            
-            /* how much the viewport should pan on next update */
-            this.panning_x = 0;
-            this.panning_y = 0;
-            
-            /* the width and height of the screen */
-            this.screen_width = $(window).width();
-            this.screen_height = $(window).height();
-            
-            /* the maximum distance the camera can pan */
-            this.max_pan_x = this.screen_width - (this.game.constants.TILE_WIDTH * this.game.map.width);
-            this.max_pan_y = this.screen_height - (this.game.constants.TILE_HEIGHT * this.game.map.height);
-        },
-        
-        /* called when the window gets resized, by game.events*/
-        resize: function() {
-            this.screen_width = $(window).width();
-            this.screen_height = $(window).height();
-            this.max_pan_x = this.screen_width - (this.game.constants.TILE_WIDTH * this.game.map.width);
-            this.max_pan_y = this.screen_height - (this.game.constants.TILE_HEIGHT * this.game.map.height);
-        },
-        
-        /* called when the background gets resized */
-        background_resize: function() {
-            this.max_pan_x = this.screen_width - (this.game.constants.TILE_WIDTH * this.game.map.width);
-            this.max_pan_y = this.screen_height - (this.game.constants.TILE_HEIGHT * this.game.map.height);
-        },
-
-        /* this is called every time the mouse moves */
-        mouse_move: function(e) {
-            mouse_x = e.clientX;
-            mouse_y = e.clientY;
-            
-            var margin = this.game.constants.PAN_MARGIN;
-            var s_speed = this.game.constants.PAN_SPEED;
-            if (mouse_x <= margin) {
-                var diff = parseInt(((margin - mouse_x) / margin) * s_speed);
-                if (diff > s_speed) {
-                    diff = s_speed;
-                }
-                this.panning_x = diff;
-
-            } else if (mouse_x >= this.screen_width - margin) {
-                var diff = s_speed - parseInt(((this.screen_width - mouse_x)/margin) * s_speed);
-                if (diff > s_speed) {
-                    diff = s_speed;
-                }
-                
-                this.panning_x = -1 * diff;
-
-            } else {
-                this.panning_x = 0;
-            }
-            
-            if (mouse_y <= margin) {
-                var diff = parseInt(((margin - mouse_y) / margin) * s_speed);
-                if (diff > s_speed) {
-                    diff = s_speed;
-                }
-                this.panning_y = diff;
-            } else if (mouse_y >= this.screen_height - margin) {
-                var diff = s_speed - parseInt(((this.screen_height - mouse_y)/margin) * s_speed)
-                
-                if (diff > s_speed) {
-                    diff = s_speed;
-                }
-                
-                this.panning_y = -1 * diff;
-
-            } else {
-                this.panning_y = 0;
-            }
-        },
-        
-        /* this is called whenever the screen needs to pan */
-        pan: function() {
-            this.pan_x += this.panning_x;
-            this.pan_y += this.panning_y;
-           
-           if (this.pan_x > 0) {
-                this.pan_x = 0;
-            } else if (this.pan_x < this.max_pan_x) {
-                this.pan_x = this.max_pan_x;
-            }
-
-            if (this.pan_y > 0) {
-                this.pan_y = 0;
-            } else if (this.pan_y < this.max_pan_y) {
-                this.pan_y = this.max_pan_y;
-            }
-            this.game.draw.move_view(this.pan_x, this.pan_y);      
-        },
-        
-        /* this is called every frame from game.update()*/
-        update: function(delta) {
-            /* check if we need to pan */
-            if (this.panning_x != 0 || this.panning_y != 0) {
-                this.pan();
-            }
-            
-            /* draw highlighter at cursor */
-            var x_loc = this.game.events.tile_under_mouse[0] * this.game.constants.TILE_WIDTH +  this.pan_x;
-            var y_loc = this.game.events.tile_under_mouse[1] * this.game.constants.TILE_HEIGHT + this.pan_y;
-            //this.game.draw.rectangle('refreshed', x_loc, y_loc, this.game.constants.TILE_WIDTH, this.game.constants.TILE_HEIGHT, '#0A2933', '#0033CC', .25);
-        }
     };
   
     /* give managers a parent reference (not all need one) */
     this.events.game = this;
+    this.viewport.game = this;
     this.draw.game = this;
     this.map.game = this;
-    this.viewport.game = this;
     
-    
+    /* initialize the managers*/
     this.resources.init();
     this.events.init();
+    this.viewport.init();
     this.draw.init();
     this.map.init();
-    this.viewport.init();
+    
 }
 
 /* starts the game */
-Game.prototype.start = function(callback) {
-    this.started = true;
+Game.prototype.start = function(callback) { 
+    /* set time info */
     var d = new Date(); 
     this.time = d.getTime();
     this.time_started = this.time;
+    
+    /* handle callbacks and begin update() loop */
     var me = this;
     var cb = callback;
     this.resources.load(function() { 
         me.update(me);
+        this.started = true;
         if (cb) {
             cb();
         }

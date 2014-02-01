@@ -1,38 +1,35 @@
 <html lang='en'>
 <head>
 	<meta charset='UTF-8'>
-    
 	<title>game-tools.js - scenario 1</title>
-    <!-- custom css -->
-    
+
     <!-- external jquery script -->
     <script src='../../js/external/jquery-2.0.3.min.js'></script>
     
     <!-- engine script -->
-    <script src='../../game-tools.min.js'></script>
+    <script src='../../game-tools.js'></script>
     
     <!-- custom game script -->
     <script src='scenario_01.js'></script>
     
+    <!-- custom css -->
     <style>
-        #game_overlay {
-            position:relative;
+        #my_game {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            width: 800px;
+            height: 600px;
+            border: 3px solid black;
         }
-
         .game_canvas {
             position:absolute;
             left:0px;
             top:0px;
         }
     </style>
-    
 </head>
 <body>
-    <!-- game overlay -->
-    <div id='game_overlay' class='gui_container'>
-        <!-- div for GUI elements -->
-        <div id='windows'></div>
-        <!-- div for entire game map -->
-        <div id='game_area'></div>
-    </div>
+    <div id='loading'>LOADING</div>
+    <div id='my_game'></div>
 </body>
