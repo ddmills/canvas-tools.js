@@ -11,7 +11,7 @@ The HTML:
 <div id='my_game_area'></div>
 ```
 
-The javascript (my_game_script.js):
+The JavaScript (my_game_script.js):
 ```javascript
 /* create a game object */
 var my_game = new Game('my_game_area');

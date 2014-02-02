@@ -16,7 +16,7 @@ off_y = anim.clip[1] * off_h
 3.) DONE window.draw.update() and Animation (in draw.js)
 Animation should have it's own .draw() method
 
-4.) ???? Animation should be extracted from draw.js into it's own file.
+4.) NIX'D Animation should be extracted from draw.js into it's own file.
 
 5.) DONE Add rotation for images and animations
 
@@ -26,12 +26,16 @@ Animation should have it's own .draw() method
 
 8.) DONE make active window appear above others
 
-9.) clean up scenario_gui.js. divide windows into their own files?
+9.) NIX'D clean up scenario_gui.js. divide windows into their own files?
 
-10.) fix mip-mapping for certain draw layers! ('background??')
+10.) DONE fix mip-mapping for certain draw layers! ('background??')
 
-11.) get rid of initializer.js maybe??
+11.) DONE get rid of initializer.js maybe??
 
 12.) DONE create a set 'area' for jquery.windower.js
 
-13.) background not drawing on startup? maybe has something to do with requestAnimFrame()??
+13.) DONE background not drawing on startup? maybe has something to do with requestAnimFrame()
+
+14.) redundant mouse position calculations??
+
+15.) make mouse pos calculate outside of game overlay area as well?

@@ -10,30 +10,20 @@
     <script src='../../game-tools.js'></script>
     
     <!-- custom game script -->
-    <script src='scenario_01.js'></script>
+    <script src='scenario_02.js'></script>
     
     <!-- custom css -->
     <style>
         #my_game {
             position: absolute;
-            left: 20px;
-            top: 20px;
-            width: 800px;
-            height: 600px;
-            border: 3px solid black;
         }
-        #my_game2 {
-            position: absolute;
-            left: 840px;
-            top: 20px;
-            width: 800px;
-            height: 600px;
-            border: 3px solid black;
+        #loading {
+            display: none;
         }
     </style>
 </head>
 <body style='background: grey;'>
-    <div id='loading'>LOADING</div>
+    <button id='start' onClick='start()'>Click to start</button>
+    <div id='loading'>Loading</div>
     <div id='my_game'></div>
-    <div id='my_game2'></div>
 </body>

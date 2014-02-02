@@ -25,8 +25,7 @@ $(window).ready(function() {
 
     g.constants.TILE_HEIGHT = 64;
     g.constants.TILE_WIDTH = 64;
-    
-    g.constants.FULLSCREEN = true;
+    g.constants.PAN = true;
     
     /* add some layers */
     g.draw.add_layer('background', false, true);

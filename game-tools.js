@@ -4,6 +4,9 @@ $(window).ready(function() {
         window.mozRequestAnimationFrame ||
         window.webkitRequestAnimationFrame || 
         window.msRequestAnimationFrame;
+    document.pointerLockElement = document.pointerLockElement    ||
+        document.mozPointerLockElement ||
+        document.webkitPointerLockElement;
 });
 function Game(id) {
     this.paused = false; // pauses the game when true
@@ -16,22 +19,24 @@ function Game(id) {
     /* MANAGERS */
     this.constants = {
         FULLSCREEN : false, // a flag to set full screen
+        PAN : false, // enable panning
+        CURSOR_SPEED: 1, // cursor speed multiplier
         
         MIP_MAPPING : false, // disable or enable mip mapping
         
-        GAME_AREA_WIDTH : 1600, // X number of pixels for game area
-        GAME_AREA_HEIGHT : 1200, // Y number of pixels for game area
+        GAME_AREA_WIDTH : 3000, // X number of pixels for game area
+        GAME_AREA_HEIGHT : 2000, // Y number of pixels for game area
         
         VIEW_WIDTH : 800, // viewport width
         VIEW_HEIGHT : 600, // viewport height
 
         GAME_SPEED : 1,  // game speed mulitplier
         
-        TILE_WIDTH : 64, // tile width
-        TILE_HEIGHT : 64, // tile height
+        TILE_WIDTH : 32, // tile width
+        TILE_HEIGHT : 32, // tile height
 
-        PAN_MARGIN : 32, // margin for panning
-        PAN_SPEED : 25, // speed for panning
+        PAN_MARGIN : 16, // margin for panning
+        PAN_SPEED : 35, // speed for panning
     };
     this.resources = {
         init: function() {
@@ -79,7 +84,10 @@ function Game(id) {
     this.events = {
         init: function() {
             this.hooks = [];
-            this.tile_under_mouse = [0, 0];
+            this.mouse_x = 0;
+            this.mouse_y = 0;
+            this.tile_x = 0;
+            this.tile_y = 0;
             var me = this;
             
             $(window).mousedown(function(e) {
@@ -94,58 +102,82 @@ function Game(id) {
             $(window).bind('mousewheel DOMMouseScroll MozMousePixelScroll', function(e) {
                 me.mouse_wheel(e);
             });
-            $('#game_overlay').mouseleave(function(e) {
-                me.mouse_move(e);
-            });
             $(window).keydown(function(e) {
                 me.key_down(e);
             });
             $(window).keyup(function(e) {
                 me.key_up(e);
             });
-            $(window).resize(function() {
+            $(window).resize(function(e) {
                 me.resize();
             });
+            
+            document.addEventListener('pointerlockchange', function() {
+                me.pointerLockChange();
+            }, false);        
+            document.addEventListener('mozpointerlockchange', function() {
+                me.pointerLockChange();
+            }, false);       
+            document.addEventListener('webkitpointerlockchange', function() {
+                me.pointerLockChange();
+            }, false);        
+            document.addEventListener('pointerlockerror', function() {
+                me.pointerLockError();
+            }, false);    
+            document.addEventListener('mozpointerlockerror', function() {
+                me.pointerLockError();
+            }, false);   
+            document.addEventListener('webkitpointerlockerror', function() {
+                me.pointerLockError();
+            }, false);
         },
         
+        /* fired when a mouse button is pressed */
         mouse_down: function(e) {
             e.preventDefault();
+            this.event_fired('mouse_down', e);
         }, 
         
+        /* fired when a mouse button is let up */
         mouse_up: function(e) {
             e.preventDefault();
+            this.event_fired('mouse_up', e);
         },
         
+        /* fired when the mouse moves */
         mouse_move: function(e) {
             e.preventDefault();
-            this.mouse_to_tile(e.clientX, e.clientY);
+            this.mouse_to_tile();
+            this.update_mouse_pos(e);
             this.event_fired('mouse_move', e);
         },
         
+        /* fired when mouse wheel scrolled*/
         mouse_wheel: function(e) {
             e.preventDefault();
         },
-        
-        mouse_leave: function(e) {
-            
-        }, 
-        
+
+        /* fired when a key is pushed */
         key_down: function(e) {
             this.event_fired('key_down', e);
         },
         
+        /* fired when a key is let up */
         key_up: function(e) {
             this.event_fired('key_up', e);
         },
         
-        resize: function() {
-            this.event_fired('resize');
+        /* fired when the window gets resized */
+        resize: function(e) {
+            this.event_fired('resize', e);
         },
         
+        /* add a hook */
         add_hook: function(object) {
             this.hooks.push(object);
         },
         
+        /* delegates events to hooks */
         event_fired: function(event_name, e) {
             for (var i = 0; i < this.hooks.length; i++) {
                 ob = this.hooks[i];
@@ -157,18 +189,91 @@ function Game(id) {
             }
         },
         
+        /* updates the mouse_x and mouse_y coordinates in Game.events */
+        update_mouse_pos: function(e) {
+            if (this.game.viewport.has_mouse) {
+                var movement_x = e.movementX ||
+                    e.mozMovementX ||
+                    e.webkitMovementX ||
+                    0;
+
+                var movement_y = e.movementY ||
+                    e.mozMovementY ||
+                    e.webkitMovementY ||
+                    0;
+                    
+                this.mouse_x += movement_x;
+                this.mouse_y += movement_y;
+            } else {
+                if (this.game.constants.FULLSCREEN) {
+                    this.mouse_x = e.clientX;
+                    this.mouse_y = e.clientY;
+                }  else {
+                    var offset = this.game.viewport.game_ele.offset();
+                    this.mouse_x = e.clientX - offset.left;
+                    this.mouse_y = e.clientY - offset.top;
+                }
+            }
+            
+            if (this.mouse_x < 0) {
+                this.mouse_x = 0;
+            } else if (this.mouse_x > this.game.constants.VIEW_WIDTH) {
+                this.mouse_x = this.game.constants.VIEW_WIDTH;
+            }
+            
+            if (this.mouse_y < 0) {
+                this.mouse_y = 0;
+            } else if (this.mouse_y > this.game.constants.VIEW_HEIGHT) {
+                this.mouse_y = this.game.constants.VIEW_HEIGHT;
+            }
+        },
+        
+        /* fired whenever mouselock status changes */
+        pointerLockChange: function(e) {
+            if (document.mozPointerLockElement === elem ||
+                document.webkitPointerLockElement === elem) {
+                this.pointer_lock_gained(e);
+                this.game.viewport.has_mouse = true;
+                this.mouse_x = this.game.constants.VIEW_WIDTH/2;
+                this.mouse_y = this.game.constants.VIEW_HEIGHT/2;
+                var me = this;
+                this.e_funct = function(e) { me.update_mouse_pos(e); }
+                var me = this;
+                document.addEventListener('mousemove', this.e_funct, false);
+            } else {
+                this.pointer_lock_lost(e);
+                this.game.viewport.has_mouse = false;
+                document.removeEventListener('mousemove', this.e_funct, false);
+            }
+        },
+        
+        /* fired when there is an error trying to get the mouse pointer */
+        pointerLockError: function() {
+            console.log('Error while locking pointer.');
+        },
+        
+        /* fired when the game loses control of the mouse pointer */
+        pointer_lock_lost: function(e) {
+            this.event_fired('pointer_lock_lost', e);
+        },
+        
+        /* fired when the game gains control of the mouse pointer */
+        pointer_lock_gained: function(e) {
+            this.event_fired('pointer_lock_gained', e);
+        },   
+        
         /* convert x, y mouse coordinates to tile coordinates */
-        mouse_to_tile: function(x, y) {
-            var x_tile = -1 * parseInt((this.game.draw.pan_x - x) / this.game.constants.TILE_WIDTH);
-            var y_tile = -1 * parseInt((this.game.draw.pan_y - y) / this.game.constants.TILE_HEIGHT);
-            this.tile_under_mouse = [x_tile, y_tile];   
-        }
+        mouse_to_tile: function() {
+            var x_tile = -1 * parseInt((this.game.viewport.pan_x - this.mouse_x) / this.game.constants.TILE_WIDTH);
+            var y_tile = -1 * parseInt((this.game.viewport.pan_y - this.mouse_y) / this.game.constants.TILE_HEIGHT);
+            this.tile_x = x_tile;
+            this.tile_y = y_tile;   
+        },
     };
     this.viewport = {
         init: function() {
-            /* hook into main game loop and event loop */
-            this.game.add_hook(this);
-            this.game.events.add_hook(this);
+            /* turns true if the viewport has a mouse lock */
+            this.has_mouse = false;
             
             /* how much the viewport has panned */
             this.pan_x = 0;
@@ -182,13 +287,32 @@ function Game(id) {
             this.game_ele = $('#' + this.game.id); 
             this.overlay_ele = $('<div id="' + this.game.id + '_overlay"></div>');
             this.area_ele = $('<div id="' + this.game.id + '_area"></div');
-  
+    
+            this.game_ele.data('game', this.game);
+            
             /* set css */   
             this.overlay_ele.css('overflow', 'hidden');
             this.overlay_ele.css('left', 0);
             this.overlay_ele.css('top', 0);
-
-            /* check FULLSCREEN flag */
+            
+            /* size game area */
+            this.area_ele.css('left', 0);
+            this.area_ele.css('top', 0);
+            this.area_ele.css('position', 'absolute');
+            this.area_ele.css('width', this.game.constants.GAME_AREA_WIDTH);
+            this.area_ele.css('height', this.game.constants.GAME_AREA_HEIGHT);
+            
+            /* add them to the DOM */
+            this.overlay_ele.append(this.area_ele);
+            this.game_ele.append(this.overlay_ele);
+            /* hook into main game loop and event loop */
+            this.game.events.add_hook(this);
+            this.game.add_hook(this);
+        },
+        
+        /* called when the window gets resized, by game.events*/
+        resize: function() {
+             /* check FULLSCREEN flag */
             if (this.game.constants.FULLSCREEN) {
                 this.overlay_ele.css('position', 'fixed');
                 this.game.constants.VIEW_WIDTH = $(window).width();
@@ -209,41 +333,7 @@ function Game(id) {
 
             /* size game overlay */
             this.overlay_ele.css('width', this.game.constants.VIEW_WIDTH);
-            this.overlay_ele.css('height', this.game.constants.VIEW_HEIGHT);
-            
-            /* size game area */
-            this.area_ele.css('left', 0);
-            this.area_ele.css('top', 0);
-            this.area_ele.css('position', 'absolute');
-            this.area_ele.css('width', this.game.constants.GAME_AREA_WIDTH);
-            this.area_ele.css('height', this.game.constants.GAME_AREA_HEIGHT);
-            
-            /* add them to the DOM */
-            this.overlay_ele.append(this.area_ele);
-            this.game_ele.append(this.overlay_ele);
-        },
-        
-        /* called when the window gets resized, by game.events*/
-        resize: function() {        
-            if (this.game.constants.FULLSCREEN) {
-                this.overlay_ele.css('position', 'fixed');
-                this.game.constants.VIEW_WIDTH = $(window).width();
-                this.game.constants.VIEW_HEIGHT = $(window).height();
-            } else {
-                this.overlay_ele.css('position', 'absolute');
-            }
-
-            this.overlay_ele.css('width', this.game.constants.VIEW_WIDTH);
-            this.overlay_ele.css('height', this.game.constants.VIEW_HEIGHT);
-            
-            this.max_pan_x = this.game.constants.VIEW_WIDTH - this.game.constants.GAME_AREA_WIDTH;
-            this.max_pan_y = this.game.constants.VIEW_HEIGHT - this.game.constants.GAME_AREA_HEIGHT;
-            if (this.max_pan_x > 0) {
-                this.max_pan_x = 0;
-            }
-            if (this.max_pan_y > 0) {
-                this.max_pan_y = 0;
-            }    
+            this.overlay_ele.css('height', this.game.constants.VIEW_HEIGHT);    
         },
         
         /* change the viewport size */
@@ -253,6 +343,12 @@ function Game(id) {
             
             this.max_pan_x = this.game.constants.VIEW_WIDTH - this.game.constants.GAME_AREA_WIDTH;
             this.max_pan_y = this.game.constants.VIEW_HEIGHT - this.game.constants.GAME_AREA_HEIGHT;
+            if (this.max_pan_x > 0) {
+                this.max_pan_x = 0;
+            }
+            if (this.max_pan_y > 0) {
+                this.max_pan_y = 0;
+            }
             
             this.overlay_ele.css('width', this.game.constants.VIEW_WIDTH);
             this.overlay_ele.css('height', this.game.constants.VIEW_HEIGHT);    
@@ -261,17 +357,8 @@ function Game(id) {
         /* this is called every time the mouse moves */
         mouse_move: function(e) {
             var offset;
-            var mouse_x;
-            var mouse_y;
-            
-            if (this.game.constants.FULLSCREEN) {
-                mouse_x = e.clientX;
-                mouse_y = e.clientY;
-            }  else {
-                offset = $(this.game_ele).offset();
-                mouse_x = e.clientX - offset.left;
-                mouse_y = e.clientY - offset.top;
-            }
+            var mouse_x = this.game.events.mouse_x;
+            var mouse_y = this.game.events.mouse_y;
             
             var margin = this.game.constants.PAN_MARGIN;
             var s_speed = this.game.constants.PAN_SPEED;
@@ -343,14 +430,27 @@ function Game(id) {
         /* this is called every frame from game.update()*/
         update: function(delta) {
             /* check if we need to pan */
-            if (this.panning_x != 0 || this.panning_y != 0) {
+            if (this.game.constants.PAN && (this.panning_x != 0 || this.panning_y != 0)) {
                 this.pan();
             }
-            
-            /* draw highlighter at cursor */
-            var x_loc = this.game.events.tile_under_mouse[0] * this.game.constants.TILE_WIDTH +  this.pan_x;
-            var y_loc = this.game.events.tile_under_mouse[1] * this.game.constants.TILE_HEIGHT + this.pan_y;
-            //this.game.draw.rectangle('refreshed', x_loc, y_loc, this.game.constants.TILE_WIDTH, this.game.constants.TILE_HEIGHT, '#0A2933', '#0033CC', .25);
+        },
+        
+        /* call this to request the mouse lock */
+        request_lock: function() {
+            elem = this.game_ele[0];   
+            elem.requestPointerLock = elem.requestPointerLock    ||
+                elem.mozRequestPointerLock ||
+                elem.webkitRequestPointerLock;             
+            if (elem.requestPointerLock) {
+                elem.requestPointerLock();
+            } else {
+                console.log('Pointer lock failed');
+            }
+        },
+        
+        /* called when the game starts */
+        start: function() {
+            this.resize();
         }
     };
     this.draw = {
@@ -358,12 +458,15 @@ function Game(id) {
             this.layers = {};
             this.animations = [];
             this.game.add_hook(this);
-            this.game.events.add_hook(this);        
+            this.game.events.add_hook(this);
         },
         
         /* create a new canvas layer */
         add_layer: function(name, overlay, persistant) {
-            var canvas = $('<canvas id="' + this.game.id + '_can_' + name + '" class="game_canvas">');
+            var canvas = $('<canvas id="' + this.game.id + '_can_' + name + '">');
+            canvas.css('position', 'absolute');
+            canvas.css('left', 0);
+            canvas.css('top', 0);
             var ctx = canvas[0].getContext('2d'); 
             
             // set persistance
@@ -583,13 +686,11 @@ function Game(id) {
         
         /* called when the window gets resized */
         resize: function() {
-            if (this.game.constants.FULLSCREEN) {
-                for (layer in this.layers) {
-                    if (this.layers[layer].data('view') == 'overlay') {
-                        this.layers[layer].attr('width', this.game.constants.VIEW_WIDTH);
-                        this.layers[layer].attr('height', this.game.constants.VIEW_HEIGHT);
-                        this.set_mip_mapping(layer);
-                    }
+            for (layer in this.layers) {
+                if (this.layers[layer].data('view') == 'overlay') {
+                    this.layers[layer].attr('width', this.game.constants.VIEW_WIDTH);
+                    this.layers[layer].attr('height', this.game.constants.VIEW_HEIGHT);
+                    this.set_mip_mapping(layer);
                 }
             }
         },
@@ -621,6 +722,11 @@ function Game(id) {
                     }
                 }
             }
+        },
+        
+        /* called when the game starts */
+        start: function() {
+            this.resize();
         }
     };
     this.map = {
@@ -645,6 +751,8 @@ function Game(id) {
             this.width = map.length;
             this.height = map[0].length;
 
+            console.log(this.width);
+            
             for (var i = 0; i < map.length; i++) {
                 for(var j = 0; j < map[i].length; j++) {
                     this.game.draw.sub_sprite(this.sprite, layer, map[i][j], j * this.game.constants.TILE_WIDTH, i * this.game.constants.TILE_HEIGHT);
@@ -665,7 +773,6 @@ function Game(id) {
     this.viewport.init();
     this.draw.init();
     this.map.init();
-    
 }
 
 /* starts the game */
@@ -675,7 +782,8 @@ Game.prototype.start = function(callback) {
     this.time = d.getTime();
     this.time_started = this.time;
     this.started = true;
-    this.viewport.resize(); // A HACK FOR NOW (FOR FULL SCREEN STUFF)
+    this.viewport.start();
+    this.draw.start();
     /* handle callbacks and begin update() loop */
     var me = this;
     var cb = callback;
