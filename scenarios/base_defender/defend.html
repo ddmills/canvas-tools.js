@@ -1,0 +1,98 @@
+<html lang='en'>
+<head>
+	<meta charset='UTF-8'>
+	<title>game-tools.js - scenario 1</title>
+
+    <!-- external jquery script -->
+    <script src='../../js/external/jquery-2.0.3.min.js'></script>
+    
+    <!-- engine script -->
+    <script src='../../game-tools.js'></script>
+    
+    <!-- custom game script -->
+    <script src='defend.js'></script>
+    
+    <!-- custom css -->
+    <style>
+        body {
+            padding: 0px;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+        .container {
+            text-align: center;
+            position: relative;
+            margin-left: auto;
+            margin-right: auto;
+            width: 1000px;
+            min-height: 100%;
+            border: 1px solid black;
+            background: #B2B2B2;
+            padding: 10px;
+        }
+        .content {
+            border: 1px solid black;
+            border-collapse: collapse;
+            height: 578px;
+            width: 950px;
+            margin-top: 30px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        tr, td {
+            padding: 0px;
+        }
+        #cell-game {
+            border-left: 1px solid black;
+        }
+        #cell-shelf {
+            
+        }
+        #game-div {
+            position: relative;
+            background: black;
+            width: 100%;
+            height: 100%;
+        }
+        #game-shelf {
+            display: none;
+            background: black;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .gui {
+            position: absolute;
+            z-index: 100;
+        }
+        #gui_loading {
+            display: none;
+            
+        }
+        #gui_start {
+            marign-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body style='background: #181818;'>
+<div class='container'>
+    <h2> Welcome </h2>
+    <table class='content'>
+        <tr>
+            <td id='cell-shelf' style='background: grey'>
+                <div id='game-shelf'>
+                </div>
+            </td>
+            <td id='cell-game'>
+                <div id='game-div'>
+                    <img class='gui' src='./img/gui/start.png' id='gui_start' onClick='start()'>
+                    <img class='gui' src='./img/gui/loading.gif' id='gui_loading'>
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>
+</body>

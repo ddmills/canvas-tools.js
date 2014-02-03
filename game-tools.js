@@ -111,6 +111,9 @@ function Game(id) {
             $(window).resize(function(e) {
                 me.resize();
             });
+            $(window).click(function(e) {
+                me.mouse_click(e);
+            });
             
             document.addEventListener('pointerlockchange', function() {
                 me.pointerLockChange();
@@ -130,13 +133,22 @@ function Game(id) {
             document.addEventListener('webkitpointerlockerror', function() {
                 me.pointerLockError();
             }, false);
+            document.addEventListener('contextmenu', function(e) { 
+                e.preventDefault();
+            }, false);
+            
         },
         
         /* fired when a mouse button is pressed */
         mouse_down: function(e) {
             e.preventDefault();
             this.event_fired('mouse_down', e);
-        }, 
+        },
+        
+        mouse_click: function(e) {
+            e.preventDefault();
+            this.event_fired('mouse_click', e);
+        },
         
         /* fired when a mouse button is let up */
         mouse_up: function(e) {
@@ -210,8 +222,8 @@ function Game(id) {
                     this.mouse_y = e.clientY;
                 }  else {
                     var offset = this.game.viewport.game_ele.offset();
-                    this.mouse_x = e.clientX - offset.left;
-                    this.mouse_y = e.clientY - offset.top;
+                    this.mouse_x = e.pageX - offset.left;
+                    this.mouse_y = e.pageY - offset.top;
                 }
             }
             
@@ -264,10 +276,14 @@ function Game(id) {
         
         /* convert x, y mouse coordinates to tile coordinates */
         mouse_to_tile: function() {
-            var x_tile = -1 * parseInt((this.game.viewport.pan_x - this.mouse_x) / this.game.constants.TILE_WIDTH);
-            var y_tile = -1 * parseInt((this.game.viewport.pan_y - this.mouse_y) / this.game.constants.TILE_HEIGHT);
-            this.tile_x = x_tile;
-            this.tile_y = y_tile;   
+            this.tile_x = -1 * parseInt((this.game.viewport.pan_x - this.mouse_x) / this.game.constants.TILE_WIDTH);
+            this.tile_y = -1 * parseInt((this.game.viewport.pan_y - this.mouse_y) / this.game.constants.TILE_HEIGHT);
+            if (this.tile_y >= this.game.constants.VIEW_HEIGHT/this.game.constants.TILE_HEIGHT) {
+                this.tile_y = this.game.constants.VIEW_HEIGHT/this.game.constants.TILE_HEIGHT -1; 
+            }
+            if (this.tile_x >= this.game.constants.VIEW_WIDTH/this.game.constants.TILE_WIDTH) {
+                this.tile_x = this.game.constants.VIEW_WIDTH/this.game.constants.TILE_WIDTH - 1;
+            }
         },
     };
     this.viewport = {
@@ -299,9 +315,7 @@ function Game(id) {
             this.area_ele.css('left', 0);
             this.area_ele.css('top', 0);
             this.area_ele.css('position', 'absolute');
-            this.area_ele.css('width', this.game.constants.GAME_AREA_WIDTH);
-            this.area_ele.css('height', this.game.constants.GAME_AREA_HEIGHT);
-            
+
             /* add them to the DOM */
             this.overlay_ele.append(this.area_ele);
             this.game_ele.append(this.overlay_ele);
@@ -336,6 +350,12 @@ function Game(id) {
             this.overlay_ele.css('height', this.game.constants.VIEW_HEIGHT);    
         },
         
+        /* call this when the game area changes size */
+        resize_area: function() {
+            this.area_ele.css('width', this.game.constants.GAME_AREA_WIDTH);
+            this.area_ele.css('height', this.game.constants.GAME_AREA_HEIGHT);
+        },
+        
         /* change the viewport size */
         set_size: function(width, height) {
             this.game.constants.VIEW_WIDTH = width;
@@ -351,7 +371,7 @@ function Game(id) {
             }
             
             this.overlay_ele.css('width', this.game.constants.VIEW_WIDTH);
-            this.overlay_ele.css('height', this.game.constants.VIEW_HEIGHT);    
+            this.overlay_ele.css('height', this.game.constants.VIEW_HEIGHT);        
         },
         
         /* this is called every time the mouse moves */
@@ -451,6 +471,7 @@ function Game(id) {
         /* called when the game starts */
         start: function() {
             this.resize();
+            this.resize_area();
         }
     };
     this.draw = {
@@ -695,6 +716,16 @@ function Game(id) {
             }
         },
         
+        resize_area: function() {
+            for (layer in this.layers) {
+                if (this.layers[layer].data('view') == 'background') {
+                    this.layers[layer].attr('width', this.game.constants.GAME_AREA_WIDTH);
+                    this.layers[layer].attr('height', this.game.constants.GAME_AREA_HEIGHT);
+                    this.set_mip_mapping(layer);
+                }
+            }
+        },
+        
         /* set the mip-mapping */
         set_mip_mapping: function(layer) {
             var ctx = this.layers[layer][0].getContext('2d'); 
@@ -727,6 +758,7 @@ function Game(id) {
         /* called when the game starts */
         start: function() {
             this.resize();
+            this.resize_area();
         }
     };
     this.map = {
