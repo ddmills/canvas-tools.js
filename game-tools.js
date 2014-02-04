@@ -88,6 +88,8 @@ function Game(id) {
             this.mouse_y = 0;
             this.tile_x = 0;
             this.tile_y = 0;
+            this.mouse_over = false;
+            
             var me = this;
             
             $(window).mousedown(function(e) {
@@ -134,9 +136,28 @@ function Game(id) {
                 me.pointerLockError();
             }, false);
             document.addEventListener('contextmenu', function(e) { 
-                e.preventDefault();
+                if (me.mouse_over) {
+                    e.preventDefault();
+                }
             }, false);
             
+            $(document).on('mouseenter', '#' + this.game.id + '_overlay', function(e) {
+                me.mouse_enter(e);
+            });
+            $(document).on('mouseleave', '#' + this.game.id + '_overlay', function(e) {
+                me.mouse_leave(e);
+            });
+            
+        },
+        
+        mouse_enter: function(e) {
+            this.mouse_over = true;
+            this.event_fired('mouse_enter', e);
+        },
+        
+        mouse_leave: function(e) {
+            this.mouse_over = false;
+            this.event_fired('mouse_leave', e);
         },
         
         /* fired when a mouse button is pressed */
@@ -608,10 +629,10 @@ function Game(id) {
             }
             if (sprite && img && lay) {
                 var ctx = this.layers[layer_name][0].getContext('2d');
-                var off_h = img.width/sprite.clips_y;
+                var off_h = img.height/sprite.clips_y;
                 var off_w = img.width/sprite.clips_x;
                 var off_x = (sub_sprite % sprite.clips_x) * off_w;
-                var off_y = Math.floor(sub_sprite / (sprite.clips_y)) * off_h;
+                var off_y = Math.floor(sub_sprite / (sprite.clips_x)) * off_h;
                 if (r == 0) {
                     ctx.drawImage(img, off_x, off_y, off_w, off_h, x, y, w, h);
                     return true;
@@ -648,6 +669,27 @@ function Game(id) {
             if (this.layers[layer].data('persistant') == false) {
                 this.layers[layer].data('cleared', false);
             }
+        },
+        
+        /* draw text to a layer */
+        text: function(text, layer, x, y, color, size, font) {
+            var ctx = this.layers[layer][0].getContext('2d');
+            if (!color) {
+                color = 'black'
+            }
+            if (!size) {
+                size = 12;
+            }
+            if (!font) {
+                font = 'Arial';
+            }            
+            
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.font =  size + 'px ' + font,
+            y = y+size;
+            ctx.fillText(text, x, y);
+            ctx.restore();
         },
         
         /* clear a rectangle on a layer */
@@ -740,8 +782,6 @@ function Game(id) {
             for (var i = 0; i < this.animations.length; i++) {
                 var anim = this.animations[i];
                 anim.frame_update(delta);
-                anim.rotate(delta/700);
-                anim.move(delta/50, 0);
                 anim.draw();
             }
             

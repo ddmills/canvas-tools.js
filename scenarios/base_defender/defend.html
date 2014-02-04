@@ -58,13 +58,14 @@
         }
         #game-shelf {
             display: none;
-            background: black;
+            background: grey;
             position: relative;
             width: 100%;
             height: 100%;
+            padding-left:5px;
         }
         .gui {
-            position: absolute;
+            position: relative;
             z-index: 100;
         }
         #gui_loading {
@@ -75,6 +76,13 @@
             marign-left: auto;
             margin-right: auto;
         }
+        .button {
+            z-index: 100;
+            width: 100px;
+        }
+        h3 {
+            margin: 2px;
+        }
     </style>
 </head>
 <body style='background: #181818;'>
@@ -84,11 +92,21 @@
         <tr>
             <td id='cell-shelf' style='background: grey'>
                 <div id='game-shelf'>
+                    <h2> Build Menu </h2>
+                    <button id='gui_build_destroy'  class='button' onclick='set_build_type("destroy")'>Destroy</button>
+                    <h3> Walls </h3>
+                    <button id='gui_build_stonewall' class='button' onclick='set_build_type("stonewall")'>Stone</button>
+                    <h3>Towers</h3>
+                    <button id='gui_build_frost' class='button' onclick='set_build_type("frost")'>Frost</button>
+                    <button id='gui_build_poison'  class='button' onclick='set_build_type("poison")'>Poison</button>
+                    <button id='gui_build_fire'  class='button' onclick='set_build_type("fire")'>Fire</button>
+                    <h2> Other </h2>
+                    <button id='gui_spawn_crawler' class='butotn' onclick='spawn("crawler")'>Spawn Crawler</button>
                 </div>
             </td>
             <td id='cell-game'>
                 <div id='game-div'>
-                    <img class='gui' src='./img/gui/start.png' id='gui_start' onClick='start()'>
+                    <img class='gui' src='./img/gui/start.png' id='gui_start' onclick='start()'>
                     <img class='gui' src='./img/gui/loading.gif' id='gui_loading'>
                 </div>
             </td>
